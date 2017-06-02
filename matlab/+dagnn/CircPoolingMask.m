@@ -14,16 +14,14 @@ classdef CircPoolingMask < dagnn.Filter
         pcoordsr=params{1};
         pcoordsr(:,:,1,:)=bsxfun(@rdivide,pcoordsr(:,:,1,:),max(max(pcoordsr(:,:,1,:),[],1),[],2));
         pcoordsr(pcoordsr<0)=1;
-        pcoordsr = gpuArray(imresize(gather(pcoordsr),[size(inputs{1},1) size(inputs{1},2)]));
+        pcoordsr = imresize(gather(pcoordsr),[size(inputs{1},1) size(inputs{1},2)]);
+        if(gpuMode)
+            pcoordsr=gpuArray(pcoordsr);
+        end
         pcoordsr(:,:,1,:)=bsxfun(@rdivide,pcoordsr(:,:,1,:),max(max(pcoordsr(:,:,1,:),[],1),[],2));
-
-        
         outputs{1} = vl_nncircpool_mask(inputs{1}, pcoordsr, self.poolSize, 'pad', self.pad, 'overlap', self.overlap, 'method', self.method, self.opts{:}) ;
        
-         %pause;
-        if(gpuMode>0)
-           clear pcoordsr;
-        end
+        clear pcoordsr;
     end
 
     function [derInputs, derParams] = backward(self, inputs, params, derOutputs)
@@ -40,10 +38,7 @@ classdef CircPoolingMask < dagnn.Filter
             pcoordsr=gpuArray(pcoordsr);
         end
         derInputs{1} = vl_nncircpool_mask(inputs{1}, pcoordsr, self.poolSize, derOutputs{1}, 'pad', self.pad, 'overlap', self.overlap, 'method', self.method, self.opts{:}) ;       
-        if(gpuMode>0)
-           clear pcoordsr;
-        end
-        
+        clear pcoordsr;
         
       derParams = {} ;
     end

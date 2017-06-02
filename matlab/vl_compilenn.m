@@ -494,38 +494,23 @@ end
 
 % Intermediate object files
 srcs = horzcat(lib_src,mex_src) ;
-aux_src{1} = fullfile(root,'matlab','src','bits',['nnweakloss.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src',['vl_nnweakloss.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','weakloss_gpu.cu') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','weakloss_cpu.cpp') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits',['nnsimpooling.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src',['vl_nnsimpool.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','simpooling_cpu.cpp') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','simpooling_gpu.cu') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits',['nncircpooling_mask.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src',['vl_nncircpool_mask.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','circpooling_mask_cpu.cpp') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','circpooling_mask_gpu.cu') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits',['nnaggregation.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src',['vl_nnaggregation.' ext]) ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','aggregation_cpu.cpp') ;
-aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','aggregation_gpu.cu') ;
-
-% % 
-% % aux_src{1} = fullfile(root,'matlab','src','bits',['nnsimpooling.' ext]) ;
-% % aux_src{2} = fullfile(root,'matlab','src',['vl_nnsimpool.' ext]) ;
-% % aux_src{3} = fullfile(root,'matlab','src','bits','impl','simpooling_cpu.cpp') ;
-% % aux_src{4} = fullfile(root,'matlab','src','bits','impl','simpooling_gpu.cu') ;
-% % aux_src{1} = fullfile(root,'matlab','src','bits',['nncircpooling_mask.' ext]) ;
-% % aux_src{2} = fullfile(root,'matlab','src',['vl_nncircpool_mask.' ext]) ;
-% % aux_src{3} = fullfile(root,'matlab','src','bits','impl','circpooling_mask_cpu.cpp') ;
-% % aux_src{4} = fullfile(root,'matlab','src','bits','impl','circpooling_mask_gpu.cu') ;
-% % aux_src{1} = fullfile(root,'matlab','src','bits',['nnpooling.' ext]) ;
-% % aux_src{2} = fullfile(root,'matlab','src',['vl_nnpool.' ext]) ;
-% % aux_src{3} = fullfile(root,'matlab','src','bits','impl','pooling_cpu.cpp') ;
-% % aux_src{4} = fullfile(root,'matlab','src','bits','impl','pooling_gpu.cu') ;
-
-srcs = horzcat(aux_src) ;
+% aux_src{1} = fullfile(root,'matlab','src','bits',['nnweakloss.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src',['vl_nnweakloss.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','weakloss_gpu.cu') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','weakloss_cpu.cpp') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits',['nnsimpooling.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src',['vl_nnsimpool.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','simpooling_cpu.cpp') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','simpooling_gpu.cu') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits',['nncircpooling_mask.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src',['vl_nncircpool_mask.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','circpooling_mask_cpu.cpp') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','circpooling_mask_gpu.cu') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits',['nnaggregation.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src',['vl_nnaggregation.' ext]) ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','aggregation_cpu.cpp') ;
+% aux_src{end+1} = fullfile(root,'matlab','src','bits','impl','aggregation_gpu.cu') ;
+% srcs = horzcat(aux_src) ;
 
 for i = 1:numel(srcs)
   [~,~,ext] = fileparts(srcs{i}) ; ext(1) = [] ;
