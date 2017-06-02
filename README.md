@@ -16,21 +16,18 @@ Iván González-Díaz. Incorporating the Knowledge of Dermatologists to Convolut
 
 By the moment, I am providing just a demo to execute our diagnosis system over data. As soon as I clean the code, scripts for training will be provided.
 
-To run the mode, follow the steps:
+To run the demo, follow these steps:
 
-- Compite the MatConvNet toolbox as described in the authors webpage http://www.vlfeat.org/matconvnet/.
-- In demo.m script, modify the corresponding parameters (useGPU,bsize, etc.)
-- Run the demo.m script.
+	- Compite the MatConvNet toolbox as described in the authors webpage http://www.vlfeat.org/matconvnet/.
+	- In demo.m script, modify the corresponding parameters (useGPU,bsize, etc.)
+	- Run the demo.m script.
 
 The code operates as follows:
 
-1.- It accepts as inputs pair of images containing both the dermoscopic lesion and a binary lesion mask separating pixels belonging to the lesion to the surrounding skin.
-
-2.- It performs a data augmentation process that generates rotated and cropped versions of the original image of the lesion.
-
-3.- It generates a segmentation of the lesion into a set of 8 dermoscopic features of interest for dermatologists.
-
-4.- Using the previous information, it computes a diagnosis as a 3 vector containing probabilities of benign, melanoma and seborrheic keratosis. As we have several views of the same lesion due to data augmentation,individual outputs are fused using an average aggregator before applying the softmax. 
+	1.- It accepts as inputs pair of images containing both the dermoscopic lesion and a binary lesion mask separating pixels belonging to the lesion to the surrounding skin.
+	2.- It performs a data augmentation process that generates rotated and cropped versions of the original image of the lesion.
+	3.- It generates a segmentation of the lesion into a set of 8 dermoscopic features of interest for dermatologists.
+	4.- Using the previous information, it computes a diagnosis as a 3 vector containing probabilities of benign, melanoma and seborrheic keratosis. As we have several views of the same lesion due to data augmentation,individual outputs are fused using an average aggregator before applying the softmax. 
 
 
 
