@@ -16,9 +16,9 @@ Iván González-Díaz. Incorporating the Knowledge of Dermatologists to Convolut
 
 By the moment, I am providing just a demo to execute our diagnosis system over data. As soon as I clean the code, scripts for training will be provided.
 
-=========================================================
+
 Running the demo: providing a diagnosis for a given image
-=========================================================
+
 To run the demo, follow these steps:
 
 	- Compite the MatConvNet toolbox as described in the authors webpage http://www.vlfeat.org/matconvnet/.
@@ -33,9 +33,9 @@ The code operates as follows:
 	4.- Using the previous information, it computes a diagnosis as a 3 vector containing probabilities of benign, melanoma and seborrheic keratosis. As we have several views of the same lesion due to data augmentation,individual outputs are fused using an average aggregator before applying the softmax. 
 
 
-==========================
+
 Training your own networks
-==========================
+
 
 I provide two functions in case you would like to train your own networks:
 
