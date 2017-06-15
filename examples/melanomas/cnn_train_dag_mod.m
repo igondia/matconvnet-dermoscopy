@@ -272,19 +272,21 @@ for t=1:params.batchSize:numel(subset)
     sel = [sel, find(cellfun(@(x) isa(x,'dagnn.Fusion'), {net.layers.block}))];
     
     if(~isempty(sel))
+        %CODE TO SAVE AND LOAD SEGMENTATIONS AND AVOID COMPUTING THEM EVERY
+        %TIME
         [wmod readed]=loadSegmentations(params.imdb,batch);
-%         wmod=[];
-%         readed=zeros(size(batch));
+%           reader=0;
+
         if(sum(readed)<length(readed))
-            
+            net_seg.meta.normalization.vdata_mean=reshape(net_seg.meta.normalization.vdata_mean,[1 1 3]);
             %First, execute the net_seg
             %%Feed-forward network
             if isSegDag==0
                 sinputs=inputs{2}(:,:,:,~readed);
-                %OJO: Esto es una estupidez, pero arregla el problema de que
-                %los segmentadores se han entrenado con otra normalización
-                sinputs=bsxfun(@plus,sinputs,params.imdb.images.vdata_mean);
-                sinputs=bsxfun(@minus,sinputs,net_seg.data_mean);
+                %In case the normalization of net and seg_net is different
+                if(sum(abs(net_seg.meta.normalization.vdata_mean-net.meta.normalization.vdata_mean))>1e-3)
+                    sinputs=bsxfun(@plus,sinputs,net.meta.normalization.vdata_mean-net_seg.meta.normalization.vdata_mean);
+                end
             
                 res_seg = vl_simplenn_mask(net_seg, sinputs, inputs{6}(:,:,:,~readed), [], res_seg, ...
                     'accumulate', s ~= 1, ...
@@ -306,6 +308,12 @@ for t=1:params.batchSize:numel(subset)
             else
                 
                 sinputs={inputs{1},inputs{2}(:,:,:,~readed)};
+                
+                %In case the normalization of net and seg_net is different
+                if(sum(abs(net_seg.meta.normalization.vdata_mean-net.meta.normalization.vdata_mean))>1e-3)
+                    sinputs{2}=bsxfun(@plus,sinputs{2},net.meta.normalization.vdata_mean-net_seg.meta.normalization.vdata_mean);
+                end
+                
                 net_seg.eval(sinputs);
                 if(~isempty(wmod))
                     wmod(:,:,:,~readed)=net_seg.vars(end).value(:,:,2:end,:);
@@ -314,7 +322,7 @@ for t=1:params.batchSize:numel(subset)
                 end
             end
             
-            saveSegmentations(params.imdb,batch,wmod);
+           saveSegmentations(params.imdb,batch,wmod);
         end
         %Reduce analysis to lession masks
         masks=inputs{6}(:,:,1,:)>0;
@@ -384,12 +392,7 @@ for t=1:params.batchSize:numel(subset)
       net.mode = 'test' ;
       net.eval(inputs) ;
     end
-  
-  %Ojo: Borrar
-  if(~isempty(params.saveFeat))
-    v = net.getVarIndex(params.saveFeat) ;
-    saveFeatures(params.imdb,batch,net.vars(v).value);
-  end
+
   
   end
 
@@ -691,16 +694,3 @@ for i=1:numIm
 	end
 end
 
-function saveFeatures(imdb,batch,features)
-[folder fname ext]=fileparts(imdb.images.paths{batch(1)});
-sfolder=regexprep(folder,'db_images','db_features');
-numIm=length(batch);
-data=[];
-for i=1:numIm
-	[folder fname ext]=fileparts(imdb.images.paths{batch(i)});
-	sFile=[sfolder '/' fname '' ext];
-	if(~exist(sFile,'file'))
-    	data=features(:,:,:,i);
-		save(sFile,'data');
-	end
-end

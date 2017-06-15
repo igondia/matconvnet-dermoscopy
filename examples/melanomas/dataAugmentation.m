@@ -28,7 +28,7 @@ for o=1:size(imor,4)
     mask_aux=rgb2gray(uint8(imo))>0;
     mask_aux=imfill(mask_aux,'holes');
     mask_aux=imclose(mask_aux,strel('disk',10));
-    %             figure(2);imshow(imresize(mask_aux,0.25));
+
     %If we have to crop things
     if(sum(mask_aux(:)==0)>30)
         CC = bwconncomp(mask_aux);
@@ -60,6 +60,7 @@ for o=1:size(imor,4)
         idx=1;
     end
     %Now check the bounding box
+    
     bb=stats(idx).BoundingBox;
     imcropped=imcrop(imo,round(bb));
     maskcropped=imcrop(masko,round(bb));
@@ -67,7 +68,7 @@ for o=1:size(imor,4)
     %             figure(3);imshow(imresize(uint8(imcropped),0.25));;
     %Now we have to obtain the different croppings
     [imcr, pcoordcr]=getCroppedVersions(imcropped,maskcropped,numCrops,imSize);
-    data(:,:,:,(o-1)*numCrops+1:o*numCrops)=single(imcr);
+    data(:,:,:,(o-1)*numCrops+1:o*numCrops)=imcr;
     pcoord(:,:,:,(o-1)*numCrops+1:o*numCrops)=single(pcoordcr);
 end
 fprintf('\n');
@@ -133,24 +134,28 @@ pcoord(:,:,2)=TH;
 function [or_versions, or_masks] = getOrientedVersions(im,mask,numAngles)
 angle=round(360/(numAngles));
 imSize=size(im);
-or_versions=single(zeros(imSize(1),imSize(2),3,numAngles));
-or_masks=uint8(zeros(imSize(1),imSize(2),numAngles));
+or_versions=zeros(imSize(1),imSize(2),3,numAngles,'single');
+or_masks=zeros(imSize(1),imSize(2),numAngles,'uint8');
 
 for a=1:numAngles
-   imr=imrotate(im,angle*(a-1),'nearest','crop');
+    imr=imrotate(im,angle*(a-1),'nearest','crop');
     maskr=imrotate(mask,angle*(a-1),'nearest','crop');
-%     imr=imresize(imr,[imSize(1) imSize(2)]);
-%     maskr=imresize(maskr,[imSize(1) imSize(2)]);
     or_versions(:,:,:,a)=imr;
     or_masks(:,:,a)=maskr;
+
 end
 
 function [cr_versions, cr_coords] = getCroppedVersions(im,mask,numCrop,imSize)
 [H W]=size(mask);
 cr_versions = single(zeros(imSize(1),imSize(2),3,numCrop));
 cr_coords = single(zeros(imSize(1),imSize(2),2,numCrop));
+
+%Change the order to get the centered version in the first position (if we avoid augmentation)
+middle=round(numCrop/2);
+order=1:numCrop;
+order(middle)=1;
+order(1:middle-1)=order(1:middle-1)+1;
 if(W>H)
-    
     imr=imresize(im,[imSize(1) NaN]);
     maskr=imresize(mask,[imSize(1) NaN]);
     [H W aux]=size(imr);
@@ -161,8 +166,8 @@ if(W>H)
         imc=imr(:,initp:initp+imSize(2)-1,:);
         maskc=maskr(:,initp:initp+imSize(2)-1,:);
         pcoordsc=getPolarCoordinates(maskc);
-        cr_versions(:,:,:,c)=imc;
-        cr_coords(:,:,:,c)=pcoordsc;
+        cr_versions(:,:,:,order(c))=imc;
+        cr_coords(:,:,:,order(c))=pcoordsc;
     end
 else
     
@@ -176,8 +181,9 @@ else
         imc=imr(initp:initp+imSize(1)-1,:,:);
         maskc=maskr(initp:initp+imSize(1)-1,:,:);
         pcoordsc=getPolarCoordinates(maskc);
-        cr_versions(:,:,:,c)=imc;
-        cr_coords(:,:,:,c)=pcoordsc;
-    end    
+        cr_versions(:,:,:,order(c))=imc;
+        cr_coords(:,:,:,order(c))=pcoordsc;
+    end
+    
 end
-       
+
