@@ -10,10 +10,13 @@
 #include <float.h>
 #include <stdio.h>
 #include <sm_35_atomic_functions.h>
-#include "../mexutils.h"
-
+//#include "../mexutils.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 extern __device__ double atomicAdd(double* address, double val);
 
+#define RBorders 0.5
 
 /* ---------------------------------------------------------------- */
 /*                                          weakloss			    */
@@ -45,6 +48,7 @@ template<typename T> __global__ void
 contValid_kernel
 (const T* pcoords,
  int* validPixels,
+ int* validOuterPixels,
  const int pooledVolume,
  const int height,
  const int width,
@@ -58,11 +62,14 @@ contValid_kernel
 	//Set the arrays
 	if (pooledIndex < pooledVolume) {
 		validPixels[pooledIndex]=0;
+		validOuterPixels[pooledIndex]=0;
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
 				//If they are valid
 				if(pcoords[x * height + y]>=0)
 					validPixels[pooledIndex]++;
+				if(pcoords[x * height + y]>=RBorders)
+					validOuterPixels[pooledIndex]++;
 			}
 		}
 	}
@@ -82,6 +89,7 @@ weakloss_kernel
  const T* b,
  const T*beta,
  int* validPixels,
+ int* validOuterPixels,
  T mu,
  int iter,
  const bool *done,
@@ -103,7 +111,8 @@ weakloss_kernel
 		//Pixel
 		int px=pooledIndex-pim*height*width;
 		T validPx=(T)validPixels[pim];
-
+		T validOuterPx=(T)validOuterPixels[pim];
+		T validInnerPx=validPx-validOuterPx;
 		//Set the arrays on their initial locations
 		data += pim*channels*width*height + px ;
 		pcoords += pim*2*width*height + px ;
@@ -114,7 +123,7 @@ weakloss_kernel
 		DCost +=pim;
 		done +=pim;
 		//If the location is valid
-		if(*pcoords>=0 && *done==0){
+		if(*pcoords>=0 && *done==0){	
 			const T* tdata;
 			T *P=(T*)malloc(channels*sizeof(T));
 			int l;
@@ -136,8 +145,7 @@ weakloss_kernel
 					weight+=beta[z];
 			}
 			weight=weight*2/channels;
-			weight=weight/T(width*height);
-			
+
 			//Channels loop
 			T sumData=0;
 			T normalizer=0;
@@ -145,15 +153,15 @@ weakloss_kernel
 			tdata=data;
 			for (int z = 0; z < channels; z++) {
 				l=(int)labels[z];
-
+								
 				//Non-spatial case: count over all pixels
-				if(l!=3){
+				if(l<3){
 					P[z]=exp(*tdata+A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1]-maxLambda);
 				}
 				//Spatial case, we just consider as possible pixels in the lesion boundary
 				else{
 					//We consider as valid pixels on the boundaries
-					if(*pcoords>=0.75)
+					if(*pcoords>=RBorders)
 						P[z]=exp(*tdata+A[2*l]*lambda[2*z]-maxLambda);
 					//In the lesion center
 					else
@@ -167,11 +175,12 @@ weakloss_kernel
 			}
 
 			//Update Dual Cost
-			if(normalizer>0)
+			if(normalizer>0){
 				atomicAdd(DCost,-weight*(log(normalizer)+maxLambda));
-			else
-				atomicAdd(DCost,-weight*(log(T(0.000001))+maxLambda));
-
+			}
+			else{
+				atomicAdd(DCost,-weight*(log(T(0.000001))));
+			}
 			//Normalization and Lagrangian update
 			tdata=data;
 			T inc_LCost=0;
@@ -188,7 +197,7 @@ weakloss_kernel
 					ndata=0;
 
 				//Update Lambda
-				if(l!=3){
+				if(l<3){
 					T inc=b[2*l]-A[2*l]*P[z];
 					atomicAdd(nlambda+2*z,mu*inc/validPx);
 					inc=b[2*l+1]-A[2*l+1]*P[z];
@@ -197,15 +206,15 @@ weakloss_kernel
 				}
 				//Spatially constrained case
 				else{
-					if(*pcoords>=0.75){
+					if(*pcoords>=RBorders){
 						T inc=b[2*l]-A[2*l]*P[z];
 						inc_DCost+=lambda[2*z]*b[2*l];
-						atomicAdd(&nlambda[2*z],mu*inc/validPx);
+						atomicAdd(nlambda+2*z,mu*inc/validOuterPx);
 					}
 					else{
 						T inc=b[2*l+1]-A[2*l+1]*P[z];
 						inc_DCost+=lambda[2*z+1]*b[2*l+1];
-						atomicAdd(&nlambda[2*z+1],mu*inc/validPx);
+						atomicAdd(nlambda+2*z+1,mu*inc/validInnerPx);
 					}
 				}
 
@@ -285,8 +294,8 @@ weakloss_backward_kernel(T* derData,
 					weight+=beta[z];
 			}
 			weight=2*weight/channels;
-			weight=weight/T(width*height);
-
+			//weight=weight/T(width*height);
+			
 			//Channels loop
 			T sumData=0;
 			T normalizer=0;
@@ -295,12 +304,12 @@ weakloss_backward_kernel(T* derData,
 			for (int z = 0; z < channels; ++z) {
 				l=(int)labels[z];
 				//Regular case: count over all pixels
-				if(l!=3){
-					P[z]=exp(*tdata +A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1]-maxLambda);
+				if(l<3){
+					P[z]=exp(*tdata+A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1]-maxLambda);
 				}
 				//Spatially constrained case: consideronly pixels in the boundary
 				else{
-					if(*pcoords>=0.75)
+					if(*pcoords>=RBorders)
 						P[z]=exp(*tdata+A[2*l]*lambda[2*z]-maxLambda);
 					else
 						P[z]=exp(*tdata+A[2*l+1]*lambda[2*z+1]-maxLambda);
@@ -357,16 +366,17 @@ namespace vl { namespace impl {
     {
 
       int iter;
-      int K=2*channels,Niter=300,*validPixels;
+      int K=2*channels,Niter=200,*validPixels,*validOuterPixels;
       type *DCost,*DCost_GPU,*DCost_ant,*LCost_GPU,*BCost;
       type *nlambda,*best_lambda;//,*cpu_labels;
-      type mu=10.0,TDCost,TDCost_ant;
-      int contFinal=0;
+      type mu=10.0,TDCost,TDCost_ant=-1e10;
+      
       bool *done;
       int pooledVolume;
 
       cudaMalloc(&nlambda, K*numIm*sizeof(type));
       cudaMalloc(&validPixels, numIm*sizeof(int));
+      cudaMalloc(&validOuterPixels, numIm*sizeof(int));
       cudaMalloc(&DCost_GPU, numIm*sizeof(type));
       cudaMalloc(&LCost_GPU, numIm*sizeof(type));
       cudaMalloc(&done, numIm*sizeof(bool));
@@ -381,18 +391,20 @@ namespace vl { namespace impl {
       pooledVolume=(int)numIm;
           contValid_kernel<type>
          	  <<< divideAndRoundUp(pooledVolume, VL_CUDA_NUM_THREADS), VL_CUDA_NUM_THREADS >>>
-         	  (pcoords,validPixels,numIm, height, width, channels, numIm);
-      
+         	  (pcoords,validPixels,validOuterPixels,numIm, height, width, channels, numIm);
+          
       //Limit lambda values    
+      
       pooledVolume=numIm*K;
       limLambda_kernel<type>
                	  <<< divideAndRoundUp(pooledVolume, VL_CUDA_NUM_THREADS), VL_CUDA_NUM_THREADS >>>
            		  (lambda,labels,A,maxLambda,channels,numIm,numIm*K);
-
+      
       cudaMemcpy(best_lambda, lambda, K*numIm*sizeof(type),cudaMemcpyDeviceToHost);
 
       
       //The loop of iterations has to be here as it is operated serially
+      //Niter=25;
       for(iter=0;iter<Niter;iter++){
     	  
     	  //cudaMemcpy(DCost_GPU, DCost, numIm*sizeof(type), cudaMemcpyHostToDevice);
@@ -406,48 +418,48 @@ namespace vl { namespace impl {
     	  weakloss_kernel<type>
     	  <<< divideAndRoundUp(pooledVolume, VL_CUDA_NUM_THREADS), VL_CUDA_NUM_THREADS >>>
 		  (LCost_GPU, DCost_GPU, data, pcoords,
-				  labels,lambda,nlambda, A,b,beta,validPixels,mu,iter,done,
+				  labels,lambda,nlambda, A,b,beta,validPixels,validOuterPixels,mu,iter,done,
 				  pooledVolume,
 				  height, width, channels, numIm);
+    	  
     	  pooledVolume=numIm*K;
     	  //Limit the values of lambda
     	  limLambda_kernel<type>
     	  <<< divideAndRoundUp(pooledVolume, VL_CUDA_NUM_THREADS), VL_CUDA_NUM_THREADS >>>
 		  (nlambda,labels,A,maxLambda,channels,numIm,numIm*K);
-
+    	  
     	  cudaMemcpy(DCost, DCost_GPU, numIm*sizeof(type), cudaMemcpyDeviceToHost);
-    	  contFinal=0;
+    	  
     	  TDCost=0;
-
+    	  bool worse=false;
     	  //Documents loop to update lambdas
     	  for (int d=0;d<numIm;d++){
     		  type mejora;
     		  bool done_CPU;
     		  cudaMemcpy(&done_CPU,&(done[d]), 1*sizeof(bool), cudaMemcpyDeviceToHost);
 
-    		  if (done_CPU==true){
-    			  mejora=0;
-    			  TDCost+=DCost_ant[d];
-    		  }
-    		  else if(iter==0){
+    		  if(iter==0){
     			  mejora=100.0;
     			  TDCost+=DCost[d];
+    		  }
+    		  else if(done_CPU==true){
+    			  mejora=0;
+    			  TDCost+=DCost_ant[d];
     		  }
     		  else{
     			  mejora=100.0*(DCost[d]-DCost_ant[d])/abs(DCost_ant[d]);
     			  TDCost+=DCost[d];
     		  }
-
-    		  //If we don't improve enough
-    		  if(mejora<-0.1 && iter>0 && mu>1e-3){
-    		  	 mu=mu*0.5;
+		  //Lambda updates
+    		  //If we worse the results
+    		  if(mejora<-0.1){
     		  	 done_CPU=false;
     		  	 //We set the previous best lambda
     		  	 cudaMemcpy(lambda+K*d,best_lambda+K*d, K*sizeof(type),cudaMemcpyHostToDevice);
+    		  	 worse=true;
     		  }
-    		  else if(mejora<=0.1 ){
-    			 contFinal++;
-    			 done_CPU=true;
+    		  else if(mejora<=0.01 ){
+    			  done_CPU=true;
     		  }
     		  //if we are improving
     		  else{
@@ -460,17 +472,22 @@ namespace vl { namespace impl {
     			  done_CPU=false;
     		  }
     		  cudaMemcpy(&(done[d]), &done_CPU, 1*sizeof(bool), cudaMemcpyHostToDevice);
-
     	  }
-
-    	  type mejora=100.0*(TDCost-TDCost_ant)/abs(TDCost_ant);
     	  
-    	  //After 3 iters without improving
-    	  if(contFinal==numIm && iter>4){
-    		  break;
+    	  if(worse && mu>1e-2){
+    		  mu=mu*0.5;
+    		  //printf("iter %d cost %f mu %f\n",iter,TDCost,mu);
     	  }
-    	  TDCost_ant=TDCost;
-
+    	  else{
+    		  type mejora=100.0*(TDCost-TDCost_ant)/abs(TDCost_ant);
+    		 // printf("iter %d cost %f mejora %f mu %f\n",iter,TDCost,mejora,mu);
+    		  //After 3 iters without improving
+    		  if(mejora<0.001 && iter>4){
+    			  //printf("iter %d cost %f mejora %f mu %f\n",iter,TDCost,mejora,mu);
+    			  break;
+    		  }
+    		  TDCost_ant=TDCost;
+    	  }
       }
       
       type TBCost=0;
@@ -481,6 +498,7 @@ namespace vl { namespace impl {
       cudaMemcpy(lambda, best_lambda, K*numIm*sizeof(type),cudaMemcpyHostToDevice);
       cudaFree(nlambda);
       cudaFree(validPixels);
+      cudaFree(validOuterPixels);
       cudaFree(DCost_GPU);
       free(best_lambda);
       free(DCost);
@@ -504,10 +522,6 @@ namespace vl { namespace impl {
     {
 
     	int pooledVolume = numIm*height*width;
-    	int *validPixels;
-
-    	cudaMalloc(&validPixels, numIm*sizeof(int));
-
 
     	//Backward kernel
     	weakloss_backward_kernel<type>
@@ -515,8 +529,6 @@ namespace vl { namespace impl {
 		(derData, data, pcoords, labels, lambda, derOutput, A, b, beta,maxLambda,
 				pooledVolume,
 				height, width, channels, numIm);
-
-    	cudaFree(validPixels);
 
     	cudaError_t status = cudaPeekAtLastError() ;
     	return (status == cudaSuccess) ? vl::VLE_Success : vl::VLE_Cuda ;

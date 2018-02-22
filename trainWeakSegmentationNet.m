@@ -5,7 +5,7 @@
 %            process
 %            opts [optional]: opts to be included in the training process
 function trainWeakSegmentationNet(modelStructurePath,expFolder,varargin)
-%setenv('LD_LIBRARY_PATH','/usr/local/cuda-7.5/lib64:/usr/lib64/'); 
+
 %Path to the needed files
 addpath('examples/melanomas');
 dataDir='./data/';
@@ -90,8 +90,8 @@ imdb.images.labels(imdb.images.labels(:,4)>0,4)=3;
 imdb.images.labels=[zeros(nIms,1) imdb.images.labels];
 opts.validLabelsError=[1 opts.validLabelsError];
 imdb.images.instanceWeights=[ones(nIms,1) imdb.images.instanceWeights];  
-%Set Background to label 3 (only in borders as it represents skin)
-imdb.images.labels(:,1)=3;
+%Set Background to label 4
+imdb.images.labels(:,1)=4;
 opts.train.validLabelsError=opts.validLabelsError;
 
 
@@ -99,13 +99,10 @@ opts.train.validLabelsError=opts.validLabelsError;
 %%%%%%%%%%%%%%%%%%%TRAIN THE NETWORK%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-switch opts.networkType
-  case 'simplenn', trainFn = @cnn_train_mod ;
-  case 'dagnn', trainFn = @cnn_train_dag_weakLatent ;
-end
+
 trainidx=find(imdb.images.set == 1);
 validx=find(imdb.images.set == 2);
-[net, info] = trainFn(net, imdb, @getBatch, opts.train, 'train', trainidx,'val',validx) ;
+[net, info] = cnn_train_dag_weakLatent(net, imdb, @getBatch, opts.train, 'train', trainidx,'val',validx) ;
 
 % --------------------------------------------------------------------
 function varargout = getBatch(imdb, batch, networkType,opts)
@@ -113,6 +110,12 @@ function varargout = getBatch(imdb, batch, networkType,opts)
 vdata_mean=imdb.images.vdata_mean;
 labels = imdb.images.labels(batch,:)' ;
 paths=imdb.images.paths;
+
+%Cases with just one local label are problematic and should be changed to global
+idxProblematic=sum(labels)<2;
+labels(:,idxProblematic)=labels(:,idxProblematic)*2;
+
+
 im=[];
 pcoords=[];
 numIm=length(batch);
@@ -187,9 +190,11 @@ parfor f=1:numImages
         disp(['Computing image ' num2str(idxIm) '/' num2str(numImages)]);
         
         %Reading image
-        im=imread([origDatasetDir '/' idxStruct(idxIm).impath]);
+        im=single(imread([origDatasetDir '/' idxStruct(idxIm).impath]));
         %Reading mask
-        mask=imread([origDatasetDir '/' idxStruct(idxIm).maskpath])>128;
+        mask=imread([origDatasetDir '/' idxStruct(idxIm).maskpath]);
+	%Binarize the mask	
+	mask=mask==max(mask(:));
         %Data Augmentation
         [im,pcoords]=dataAugmentation(im,mask,imSize,numAngles,numCrops);
         %Save the variations
@@ -211,16 +216,18 @@ if(exist(dataMeanFile,'file'))
     load(dataMeanFile, 'dataMean','vdataMean');
 else
     dataMean=zeros(imSize(1),imSize(2),3);
+    contMean=0;
     for f=1:numTrain
         disp(['Gathering mean from doc ' num2str(f) '/' num2str(numImages)])
         for v=1:numVariations
+            contMean=contMean+1;    
             imgPath=[imDBFolder '/' num2str(f) '/' num2str(v) '.mat'];
             aux=load(imgPath,'data');
             data=aux.data;
             dataMean=dataMean+double(data);
         end
     end
-    dataMean=single(dataMean/numTrainTotal);
+    dataMean=single(dataMean/contMean);
     vdataMean=mean(mean(dataMean,2),1);
     if(sum(isinf(dataMean(:))))
         disp('Overflow in dataMean');

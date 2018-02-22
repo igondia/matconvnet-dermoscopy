@@ -12,6 +12,13 @@ classdef Performance < dagnn.Loss
   end
 
   methods
+      
+    function Y = softmax(obj,X)
+        E = exp(bsxfun(@minus, X, max(X,[],2))) ;
+        L = sum(E,2) ;
+        Y = bsxfun(@rdivide, E, L) ;
+    end
+    
      function [auc,fpr,tpr] = fAUC(obj,labels,scores)
          
          if ~islogical(labels)
@@ -61,6 +68,7 @@ classdef Performance < dagnn.Loss
         if(size(predictions,1)>1 || size(predictions,2)>1)
             predictions=max(max(predictions,[],2),[],1);
         end
+
         %In case we have 3 inputs is because we have data augmentation in
         %the evaluation 
         if(length(inputs)==3)
@@ -72,8 +80,8 @@ classdef Performance < dagnn.Loss
 
                 %Mean 
                 auxpred=predictions(:,:,:,idx);
-                auxpred=mean(auxpred,4);
-                auxpred=squeeze(auxpred)';
+                auxpred=squeeze(auxpred)';                
+                auxpred=mean(auxpred);
                 npredictions(i,:)=auxpred;
 
                 %Sum
@@ -96,12 +104,20 @@ classdef Performance < dagnn.Loss
 %                 auxpred=squeeze(vl_nnsoftmax(auxpred(1,1,:,idxj),[]))';
 %                 npredictions(i,:)=auxpred(2:3);
 
+                %LSE
+%                 auxpred=predictions(:,:,:,idx);
+%                 auxpred=squeeze(auxpred)'; 
+%                 maximo=max(auxpred(:));
+%                 auxpred=log(mean(exp(auxpred-maximo))+1e-100)+maximo;
+%                 npredictions(i,:)=auxpred;
+
+                
                 %We get the best 5
-%                 auxpred=sort(squeeze(predictions(:,:,:,idx))','descend');
-%                 auxpred=mean(auxpred(1:5,:));
-%                 auxpred=reshape(auxpred,[1 1 3 1]);
-% %                 auxpred=squeeze(vl_nnsoftmax(auxpred,[]))';
-%                 auxpred=squeeze(auxpred)';
+%                 auxpred=predictions(:,:,:,idx);
+%                 auxpred=squeeze(auxpred)'; 
+%                 [vals idxbest]=sort(abs(auxpred),'descend');
+%                 auxpred=[auxpred(idxbest(1:5,1),1) auxpred(idxbest(1:5,2),2) auxpred(idxbest(1:5,3),3)];
+%                 auxpred=mean(auxpred);
 %                 npredictions(i,:)=auxpred;%(2:3);
 
                 nlabels(i)=labels(find(idx,1,'first'));
@@ -109,16 +125,23 @@ classdef Performance < dagnn.Loss
             labels=nlabels;
             predictions=npredictions;
         else
-            predictions=squeeze(vl_nnsoftmax(predictions,[]));
+            predictions=squeeze(predictions);
             predictions=predictions';
             idxIm=[];
         end
         obj.labels=[obj.labels;labels];
         obj.predictions=[obj.predictions;predictions];
         obj.imIDs = [obj.imIDs;gather(idxIm)];
-        %We quit the background
-        eval_pred=obj.predictions(:,2:end);
         
+        if(sum(obj.predictions(:)<0))
+            eval_pred=obj.softmax(obj.predictions);
+        else
+            eval_pred=obj.predictions;
+        end
+        
+        %We quit the background    
+        eval_pred=eval_pred(:,2:end);        
+        %eval_pred
         switch obj.metric
               case 'auc'
                   [numCat]=size(eval_pred,2);

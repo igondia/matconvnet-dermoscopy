@@ -44,7 +44,11 @@ for o=1:size(imor,4)
         if(sum(M(:))>400)
             maskn=imresize(uint8(M),[Ho Wo],'nearest').*masko;
             if(sum(maskn(:))==0)
-                masko=maskor(:,:,o);
+                if(sum(masko(:))==0) 
+                    masko=imresize(uint8(M),[Ho Wo],'nearest');
+                else
+                    masko=maskor(:,:,o);
+                end
             else
                 masko=maskn;
             end
@@ -147,8 +151,8 @@ end
 
 function [cr_versions, cr_coords] = getCroppedVersions(im,mask,numCrop,imSize)
 [H W]=size(mask);
-cr_versions = single(zeros(imSize(1),imSize(2),3,numCrop));
-cr_coords = single(zeros(imSize(1),imSize(2),2,numCrop));
+cr_versions = zeros(imSize(1),imSize(2),3,numCrop,'single');
+cr_coords = zeros(imSize(1),imSize(2),2,numCrop,'single');
 
 %Change the order to get the centered version in the first position (if we avoid augmentation)
 middle=round(numCrop/2);

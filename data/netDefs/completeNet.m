@@ -19,7 +19,9 @@ opts.valDB=2;
 
 opts.imdbPath= fullfile('data', ['imdb_' opts.dbName '_' num2str(opts.imSize(1)) 'x' num2str(opts.imSize(2)) '_tr_' num2str(opts.trainDB) '_val_' num2str(opts.valDB) '.mat']);
 %Network Training options
-lr=logspace(-4,-5,10); %Learning rate per epoch
+%lr=logspace(-4,-5,10); %Learning rate per epoch
+%lr=1e-4*ones(10,1);
+lr=logspace(-3.5,-4,10);
 opts.train.learningRate = lr ; %Learning rate
 opts.train.numEpochs = numel(lr) ;
 opts.train.batchSize = 256 ; %Batch size
@@ -29,7 +31,8 @@ opts.train.momentum = 0.9 ; %Momentum parameter
 opts.train.gpus = 1; %Leave empty if no GPUs are available
 opts.train.errorFunction = 'auc' ;
 opts.train.nesterovUpdate = true ; %Using Nesterov moments
-
+opts.train.colorAug.active=true; %Using color augmentation in training (this is computed online)
+opts.train.colorAug.dev=0.05; %Deviation in color augmentation
 %Loading net_seg
 load('models/segmentationNet.mat');
 opts.networkType = 'dagnn' ;

@@ -1,6 +1,9 @@
 This software contains a modification of the toolbox MatConvNet (http://www.vlfeat.org/matconvnet/). MatConvNet is a toolbox that implements CNN on Matlab. 
 
-This code implements our solution for automatic melanoma diagnosis, which has been submitted to the ISIC 2017 challenge in melanoma diagnosis (https://challenge.kitware.com/#challenge/583f126bcad3a51cc66c8d9a). 
+This code implements our solution for automatic melanoma diagnosis, which has been initially submitted to the ISIC 2017 challenge in melanoma diagnosis (https://challenge.kitware.com/#challenge/583f126bcad3a51cc66c8d9a) and then improved for the paper:
+
+I. Gonzalez Diaz, "DermaKNet: Incorporating the knowledge of dermatologists to Convolutional Neural Networks for skin lesion diagnosis," in IEEE Journal of Biomedical and Health Informatics, vol. PP, no. 99, pp. 1-1.
+doi: 10.1109/JBHI.2018.2806962 
 
 We have participated in the Part 3: Lesion Classification. In this task, participants are asked to complete two independent binary image classification tasks that involve three unique diagnoses of skin lesions (melanoma, nevus, and seborrheic keratosis). In the first binary classification task, participants are asked to distinguish between (a) melanoma and (b) nevus and seborrheic keratosis. In the second binary classification task, participants are asked to distinguish between (a) seborrheic keratosis and (b) nevus and melanoma.
 
@@ -10,11 +13,12 @@ Definitions:
     Nevus – benign skin tumor, derived from melanocytes (melanocytic)
     Seborrheic keratosis – benign skin tumor, derived from keratinocytes (non-melanocytic)
 
-A brief description of the method is given in:
+A description of the method is given in the following papers:
+
+Iván Gonzalez Diaz, "DermaKNet: Incorporating the knowledge of dermatologists to Convolutional Neural Networks for skin lesion diagnosis," in IEEE Journal of Biomedical and Health Informatics, vol. PP, no. 99, pp. 1-1.
+doi: 10.1109/JBHI.2018.2806962
 
 Iván González-Díaz. Incorporating the Knowledge of Dermatologists to Convolutional Neural Networks for the Diagnosis of Skin Lesions. CoRR abs/1703.01976 (2017)
-
-By the moment, I am providing just a demo to execute our diagnosis system over data. As soon as I clean the code, scripts for training will be provided.
 
 
 Running the demo: providing a diagnosis for a given image

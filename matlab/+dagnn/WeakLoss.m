@@ -20,8 +20,8 @@ classdef WeakLoss < dagnn.Loss
       obj.lambda=zeros([2*size(inputs{2},1) size(inputs{2},2)],'single');
       %Return the outputs and the new lambda
       [outputs{1}, new_lambda]= vl_nnweakloss(inputs{1}.*obj.gamma, pcoordsr, gpuArray(single(inputs{2})), gpuArray(obj.lambda),gpuArray(obj.A),gpuArray(obj.b),gpuArray(obj.beta),'maxLambda',obj.maxLambda) ;
-
-      obj.lambda=gather(new_lambda);
+      obj.lambda=new_lambda;
+%       obj.lambda
       if(gpuMode>0)
           clear pcoordsr;
       end
@@ -40,7 +40,7 @@ classdef WeakLoss < dagnn.Loss
         pcoordsr = gpuArray(imresize(gather(params{1}),[size(inputs{1},1) size(inputs{1},2)],'Method','nearest'));
         pcoordsr(:,:,1,:)=bsxfun(@rdivide,pcoordsr(:,:,1,:),max(max(pcoordsr(:,:,1,:),[],1),[],2));      
         [derInputs{1}, aux]= vl_nnweakloss(inputs{1}.*obj.gamma, pcoordsr, gpuArray(single(inputs{2})), gpuArray(obj.lambda), gpuArray(obj.A),gpuArray(obj.b),gpuArray(obj.beta),gpuArray(single(derOutputs{1})),'maxLambda',obj.maxLambda);         
-        derInputs{1}=derInputs{1}/obj.gamma;
+        derInputs{1}=derInputs{1}*obj.gamma;
         derInputs{2} = [] ;
         derParams = {} ;
     end

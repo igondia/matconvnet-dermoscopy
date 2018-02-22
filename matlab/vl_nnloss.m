@@ -204,6 +204,8 @@ if ~isempty(opts.instanceWeights)
   if isempty(instanceWeights)
       if(sum(size(opts.instanceWeights)~=size(c))>0)
         instanceWeights = bsxfun(@times, onesLike(c), opts.instanceWeights') ;
+      else
+          instanceWeights = opts.instanceWeights;
       end
   else
     instanceWeights = bsxfun(@times, instanceWeights, opts.instanceWeights);

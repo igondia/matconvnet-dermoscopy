@@ -40,6 +40,7 @@ simpooling_kernel
     int pz = pooledIndex / (poolAngles*poolRings) ;
     int relLoc = pooledIndex - pz*poolAngles*poolRings;
     int pa = relLoc / poolRings ;
+    T aux;
     
     data += pz * (rings*angles) ;
     
@@ -59,7 +60,8 @@ simpooling_kernel
     	//For each ring we compute the differences and accumulate
     	for (int y1 = 0; y1 < rings; ++y1) {
     		//Compute and accumulate the difference among the sectors
-    		pooled[pooledIndex]+=fabs(data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1])*scale;
+    		aux=data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1];
+    		pooled[pooledIndex]+=aux*aux*scale;
     	}
     }
     free(idx);
@@ -96,9 +98,9 @@ simpooling_backward_kernel
 	  data += pz * rings * angles;
 	  derData += pz * rings * angles ;
 	  
-	  T scale=T(1.0)/T(2.0*rings*poolAngles);
+	  T scale=T(1.0)/T(rings*poolAngles);
 	  T sign=1;
-	  
+	  T aux;
 	  //Matrix of indexes for simmetry
 	  int * idx= new int[2*poolAngles];
 	  //We shift the matrix to the current pa
@@ -113,14 +115,11 @@ simpooling_backward_kernel
 		  for (int y1 = 0; y1 < rings; ++y1) {
 			  //Depending on the sign of the difference => We have to change the values of the mask
 			  //In forward we simply do "abs()" => here we need to know the sign to update things
+			  aux=data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1];
 			  
-			  if((data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1])>0)
-				  sign=1;
-			  else
-				  sign=-1;
 			  //Update the derivative of the z with respect to the data
-			  atomicAdd(derData + idx[2*x1]*rings + y1, sign*derPooled[pooledIndex]*scale) ;
-			  atomicAdd(derData + idx[2*x1+1]*rings + y1, -sign*derPooled[pooledIndex]*scale) ;
+			  atomicAdd(derData + idx[2*x1]*rings + y1, aux*derPooled[pooledIndex]*scale) ;
+			  atomicAdd(derData + idx[2*x1+1]*rings + y1, -aux*derPooled[pooledIndex]*scale) ;
 		  }
 	  }
 	  free(idx);

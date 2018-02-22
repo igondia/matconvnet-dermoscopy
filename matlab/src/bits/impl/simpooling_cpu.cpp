@@ -31,7 +31,7 @@ simpooling_forward_cpu(type* pooled,
 	//We fuse all rings into one
 	int pooledRing = 1;
 	int idx_init[2*pooledAngle],idx[2*pooledAngle];
-
+	type aux;
 	//Matrix of indexes for simmetry
 	for (int x = 0; x < pooledAngle; ++x) {
 		idx_init[2*x]=x;
@@ -49,7 +49,8 @@ simpooling_forward_cpu(type* pooled,
 				//For each ring we compute the differences and accumulate
 				for (int y1 = 0; y1 < rings; ++y1) {
 					//Compute and accumulate the difference among the sectors
-					pooled[x]+=fabs(data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1])*scale;
+					aux=data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1];
+					pooled[x]+=aux*aux*scale;
 				}
 			}
 			//We need to perform the circular shift of the idx
@@ -82,7 +83,8 @@ simpooling_backward_cpu(type* derData,
 {
 	//We generate the half number of angles at output
 	int pooledAngle = angles/2;
-	type scale=type(1.0)/type(2.0*rings*pooledAngle);
+	type scale=type(1.0)/type(rings*pooledAngle);
+	type aux;
 	int sign=1;
 	//Este a 1 porque sumaremos todas las contribuciones
 	int pooledRing = 1;
@@ -106,16 +108,10 @@ simpooling_backward_cpu(type* derData,
 			for(int x1 = 0; x1 < pooledAngle; ++x1) {
 				//For each ring we compute the differences and accumulate
 				for (int y1 = 0; y1 < rings; ++y1) {
-					//Depending on the sign of the difference => We have to change the values of the mask
-					//In forward we simply do "abs()" => here we need to know the sign to update things
-
-					if((data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1])>0)
-						sign=1;
-					else
-						sign=-1;
+					aux=data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1];
 					//Update the derivative of the z with respect to the data
-					derData[idx[2*x1]*rings + y1]+=sign*derPooled[x]*scale;
-					derData[idx[2*x1+1]*rings + y1]-=sign*derPooled[x]*scale;
+					derData[idx[2*x1]*rings + y1]+=aux*derPooled[x]*scale;
+					derData[idx[2*x1+1]*rings + y1]-=aux*derPooled[x]*scale;
 				}
 			}
 			//We need to perform the circular shift of the idx

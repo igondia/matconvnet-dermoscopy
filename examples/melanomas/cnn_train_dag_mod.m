@@ -34,7 +34,8 @@ opts.plotStatistics = true;
 opts.validLabelsError = 1;
 opts.sync = false ;
 opts.aug=false;
-opts.saveFeat=[];
+opts.colorAug.active=false;
+opts.colorAug.dev=0;
 opts.levels_update=-1;
 opts = vl_argparse(opts, varargin) ;
 
@@ -76,11 +77,6 @@ if (opts.aug)
 	aux_inputs=net.layers(end).inputs;
     aux_inputs{end+1}='imIdx';
     net.setLayerInputs('performance',aux_inputs);
-end
-%If write outputs
-if(~isempty(opts.saveFeat))
-    v = net.getVarIndex(opts.saveFeat) ;
-    net.vars(v).precious=1;
 end
 
 
@@ -237,7 +233,7 @@ for t=1:params.batchSize:numel(subset)
     num = num + numel(batch) ;
     if numel(batch) == 0, continue ; end
     
-    inputs = params.getBatch(params.imdb, batch,'dagnn',params.aug) ;
+    inputs = params.getBatch(params.imdb, batch,'dagnn',params.colorAug) ;
     %Convert to GPU in case is necesary
     if numGpus >= 1
       for j=2:2:length(inputs)
@@ -245,7 +241,11 @@ for t=1:params.batchSize:numel(subset)
       end
     end
     
-    
+    %Set instance weights    
+    if(length(inputs)>6 && ~params.aug)
+        instanceWeights=inputs{8};
+        net.layers(end-1).block.opts={'instanceWeights',reshape(instanceWeights,[1 1 1 length(instanceWeights)])};
+    end
     if params.prefetch
       if s == params.numSubBatches
         batchStart = t + (labindex-1) + params.batchSize ;
@@ -313,7 +313,7 @@ for t=1:params.batchSize:numel(subset)
                 if(sum(abs(net_seg.meta.normalization.vdata_mean-net.meta.normalization.vdata_mean))>1e-3)
                     sinputs{2}=bsxfun(@plus,sinputs{2},net.meta.normalization.vdata_mean-net_seg.meta.normalization.vdata_mean);
                 end
-                
+                net_seg.mode = 'test' ;
                 net_seg.eval(sinputs);
                 if(~isempty(wmod))
                     wmod(:,:,:,~readed)=net_seg.vars(end).value(:,:,2:end,:);
@@ -515,9 +515,6 @@ for p=1:numel(net.params)
           1,  net.params(p).value, thisLR, delta) ;
       end
 
-	
-    case 'notrain'
-        net.params(p).value = [];
     otherwise
       error('Unknown training method ''%s'' for parameter ''%s''.', ...
         net.params(p).trainMethod, ...

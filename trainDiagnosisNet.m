@@ -25,6 +25,7 @@ opts.train.continue = true ;
 opts.train.gpus = [];
 opts.train.learningRate=logspace(-1, -4, 20) ;
 opts.train.levels_update=-1;
+opts.train.colorAug.active=false;
 opts.networkType='dag';
 
 opts.batchNormalization = false ;
@@ -90,7 +91,7 @@ validx=find(imdb.images.set == 2);
 [net, info] = trainFn(net, net_seg,imdb, @getBatch, opts.train, 'train', trainidx,'val',validx) ;
 
 % --------------------------------------------------------------------
-function varargout = getBatch(imdb, batch, networkType,opts)
+function varargout = getBatch(imdb, batch, networkType,colorAug)
 % --------------------------------------------------------------------
 vdata_mean=imdb.images.vdata_mean;
 labels = imdb.images.labels(batch,1)' ;
@@ -103,12 +104,37 @@ load(paths{batch(1)},'data','pcoord');
 [H W C]=size(data);
 im=single(zeros(H,W,C,numIm));
 pcoords=single(zeros(H,W,2,numIm));
-im(:,:,:,1)=single(data);
+
+if(colorAug.active)
+    auxim=reshape(single(data),[H*W 3]);
+    mean_data=mean(auxim);
+    minimum=min(auxim(:));
+    maximum=max(auxim(:));    
+    [basis,coeffs] = pca(bsxfun(@minus,auxim,mean_data));
+    basis=basis+colorAug.dev*randn(3);
+    auxim=bsxfun(@plus,coeffs*basis',mean_data);
+    auxim=min(max(auxim,minimum),maximum);
+    im(:,:,:,1)=reshape(auxim,[H W 3]);
+else
+    im(:,:,:,1)=data;
+end
 pcoords(:,:,:,1)=pcoord;
 
 for i=2:numIm
     aux=load(paths{batch(i)},'data','pcoord');
-    im(:,:,:,i)=single(aux.data);
+    if(colorAug.active)
+        auxim=reshape(aux.data,[H*W 3]);
+	minimum=min(auxim(:));
+	maximum=max(auxim(:));
+        mean_data=mean(auxim);
+        [basis,coeffs] = pca(bsxfun(@minus,auxim,mean_data));
+        basis=basis+colorAug.dev*randn(3);
+        auxim=bsxfun(@plus,coeffs*basis',mean_data);
+        auxim=min(max(auxim,minimum),maximum);
+        im(:,:,:,i)=reshape(auxim,[H W 3]);
+   else
+        im(:,:,:,i)=aux.data;
+    end
     pcoords(:,:,:,i)=aux.pcoord;
 end
 
@@ -162,9 +188,10 @@ parfor f=1:numImages
         disp(['Computing image ' num2str(idxIm) '/' num2str(numImages)]);
         
         %Reading image
-        im=imread([origDatasetDir '/' idxStruct(idxIm).impath]);
+        im=single(imread([origDatasetDir '/' idxStruct(idxIm).impath]));
         %Reading mask
-        mask=imread([origDatasetDir '/' idxStruct(idxIm).maskpath])>128;
+        mask=imread([origDatasetDir '/' idxStruct(idxIm).maskpath]);
+	mask=mask==max(mask(:));
         %Data Augmentation
         [im,pcoords]=dataAugmentation(im,mask,imSize,numAngles,numCrops);
         %Save the variations
@@ -186,16 +213,18 @@ if(exist(dataMeanFile,'file'))
     load(dataMeanFile, 'dataMean','vdataMean');
 else
     dataMean=zeros(imSize(1),imSize(2),3);
+    contMean=0;
     for f=1:numTrain
         disp(['Gathering mean from doc ' num2str(f) '/' num2str(numImages)])
         for v=1:numVariations
+            contMean=contMean+1;    
             imgPath=[imDBFolder '/' num2str(f) '/' num2str(v) '.mat'];
             aux=load(imgPath,'data');
             data=aux.data;
             dataMean=dataMean+double(data);
         end
     end
-    dataMean=single(dataMean/numTrainTotal);
+    dataMean=single(dataMean/contMean);
     vdataMean=mean(mean(dataMean,2),1);
     if(sum(isinf(dataMean(:))))
         disp('Overflow in dataMean');
@@ -239,7 +268,7 @@ for f=1:numVal
     labels(idxCont)=idxStruct(idxIm).label;
     imID(idxCont)=idxIm;
     %Just the first variation
-    imgPath=[imDBFolder '/' num2str(idxIm) '/1.mat'];
+    imgPath=[imDBFolder '/' num2str(idxIm) '/2.mat'];
     %Set the paths
     imagesPaths{idxCont}=imgPath;
 end
