@@ -20,6 +20,11 @@ doi: 10.1109/JBHI.2018.2806962
 
 Iván González-Díaz. Incorporating the Knowledge of Dermatologists to Convolutional Neural Networks for the Diagnosis of Skin Lesions. CoRR abs/1703.01976 (2017)
 
+Compiling the code: Compile the code following the instructions of matconvnet. IMPORTANT: Disable double support.
+
+cd matlab
+vl_compilenn('EnableGpu',true,'EnableCudnn',true,'EnableDouble', false)
+
 
 Running the demo: providing a diagnosis for a given image
 

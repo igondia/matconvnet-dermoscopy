@@ -85,7 +85,6 @@ simpooling_backward_cpu(type* derData,
 	int pooledAngle = angles/2;
 	type scale=type(1.0)/type(rings*pooledAngle);
 	type aux;
-	int sign=1;
 	//Este a 1 porque sumaremos todas las contribuciones
 	int pooledRing = 1;
 	int idx_init[2*pooledAngle],idx[2*pooledAngle];

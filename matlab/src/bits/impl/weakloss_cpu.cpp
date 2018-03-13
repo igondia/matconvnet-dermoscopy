@@ -127,8 +127,8 @@ weakloss_kernel_cpu
 			tdata=data;
 			for (int z = 0; z < channels; ++z) {
 				l=(int)labels[z];
-				maxLambda=max(*tdata+A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1],maxLambda);
-				maxValue=max(maxValue,*tdata);
+				maxLambda=std::max(*tdata+A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1],maxLambda);
+				maxValue=std::max(maxValue,*tdata);
 				//maxLambda=maxValue;
 				tdata+=width*height;
 				if(l>0)
@@ -210,7 +210,7 @@ weakloss_kernel_cpu
 				}
 
 				//Update Lagrangian Cost
-				ndata=max(ndata,type(0.000001));
+				ndata=std::max(ndata,type(0.000001));
 				if(P[z]>0)
 					inc_LCost+=weight*P[z]*log(P[z]/ndata);
 
@@ -274,8 +274,8 @@ weakloss_backward_kernel_cpu(type* derData,
 			tdata=data;
 			for (int z = 0; z < channels; ++z) {
 				l=(int)labels[z];
-				maxLambda=max(*tdata+A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1],maxLambda);
-				maxValue=max(maxValue,*tdata);
+				maxLambda=std::max(*tdata+A[2*l]*lambda[2*z]+A[2*l+1]*lambda[2*z+1],maxLambda);
+				maxValue=std::max(maxValue,*tdata);
 				tdata+=width*height;
 				if(l>0)
 					weight+=1-beta[z];
@@ -356,7 +356,7 @@ namespace vl { namespace impl {
     {
 
       int iter;
-      int K=2*channels,Niter=300,*validPixels;
+      int K=2*channels,Niter=300,*validPixels,*validOuterPixels;
       type *DCost,*DCost_ant,*BCost,*LCost_im;
       type *nlambda,*best_lambda;//,*cpu_labels;
       type mu=10.0,TDCost,TDCost_ant;
@@ -366,6 +366,7 @@ namespace vl { namespace impl {
 
       nlambda=(type*)malloc(K*numIm*sizeof(type));
       validPixels=(int *)malloc(numIm*sizeof(int));
+      validOuterPixels=(int *)malloc(numIm*sizeof(int));
       DCost_ant=(type*)malloc(numIm*sizeof(type));
       DCost=(type*)malloc(numIm*sizeof(type));
       LCost_im=(type*)malloc(numIm*sizeof(type));

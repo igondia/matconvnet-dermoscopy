@@ -99,7 +99,6 @@ simpooling_backward_kernel
 	  derData += pz * rings * angles ;
 	  
 	  T scale=T(1.0)/T(rings*poolAngles);
-	  T sign=1;
 	  T aux;
 	  //Matrix of indexes for simmetry
 	  int * idx= new int[2*poolAngles];
@@ -113,8 +112,7 @@ simpooling_backward_kernel
 	  for(int x1 = 0; x1 < poolAngles; ++x1) {
 		  //For each ring we compute the differences and accumulate
 		  for (int y1 = 0; y1 < rings; ++y1) {
-			  //Depending on the sign of the difference => We have to change the values of the mask
-			  //In forward we simply do "abs()" => here we need to know the sign to update things
+			  //Update
 			  aux=data[idx[2*x1]*rings + y1]-data[idx[2*x1+1]*rings + y1];
 			  
 			  //Update the derivative of the z with respect to the data
