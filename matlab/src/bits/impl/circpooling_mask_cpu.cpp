@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
-
+#include <algorithm>
 /* ---------------------------------------------------------------- */
 /*                                      circpooling_mask_max_kernel */
 /* ---------------------------------------------------------------- */

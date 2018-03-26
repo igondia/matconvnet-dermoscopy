@@ -12,6 +12,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
+
 #define RBorders 0.5
 
 /* ---------------------------------------------------------------- */
