@@ -67,7 +67,9 @@ classdef Layer < handle
       % subnetworks by specifying only some of the variables as input --
       % however it is somewhat dangerous as inputs could be legitimaly
       % empty)
-      if any(cellfun(@isempty, inputs)), return ; end
+      if any(cellfun(@isempty, inputs))
+          return ;
+      end
 
       % clear inputs if not needed anymore
       for v = in

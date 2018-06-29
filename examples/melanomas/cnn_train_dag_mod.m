@@ -181,10 +181,12 @@ end
 numGpus = numel(params.gpus) ;
 if numGpus >= 1
   net.move('gpu');
-  if(isSegDag)
-      net_seg.move('gpu');
-  else
-    net_seg = vl_simplenn_move(net_seg, 'gpu') ;
+  if ~isempty(net_seg)
+    if(isSegDag)
+          net_seg.move('gpu');
+    else
+        net_seg = vl_simplenn_move(net_seg, 'gpu') ;
+    end
   end
   state.momentum = cellfun(@gpuArray, state.momentum, 'uniformoutput', false) ;
 end
@@ -515,6 +517,10 @@ for p=1:numel(net.params)
           1,  net.params(p).value, thisLR, delta) ;
       end
 
+	
+    case 'notrain'
+        %dummy
+    
     otherwise
       error('Unknown training method ''%s'' for parameter ''%s''.', ...
         net.params(p).trainMethod, ...

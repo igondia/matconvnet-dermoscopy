@@ -9,7 +9,7 @@ opts.origDatasetIdx='ISIC_2017.mat'; %Indexation File
 %Image size to be used in the CNN
 opts.imSize=[256 256];
 %DB name and path
-opts.dbName='ISIC_2017';
+opts.dbName='melanomas';
 opts.imdbFolder = fullfile('data', ['imdb_' opts.dbName '_' num2str(opts.imSize(1)) 'x' num2str(opts.imSize(2))]);
 
 %We use sets 1 to train
@@ -19,8 +19,6 @@ opts.valDB=2;
 
 opts.imdbPath= fullfile('data', ['imdb_' opts.dbName '_' num2str(opts.imSize(1)) 'x' num2str(opts.imSize(2)) '_tr_' num2str(opts.trainDB) '_val_' num2str(opts.valDB) '.mat']);
 %Network Training options
-%lr=logspace(-4,-5,10); %Learning rate per epoch
-%lr=1e-4*ones(10,1);
 lr=logspace(-3.5,-4,10);
 opts.train.learningRate = lr ; %Learning rate
 opts.train.numEpochs = numel(lr) ;
