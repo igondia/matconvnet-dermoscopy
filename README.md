@@ -61,7 +61,9 @@ I provide two functions in case you would like to train your own networks:
 
 
 Results
-In addition, infolder 'results', I also provide the csv with the test results for two approaches:
+
+
+In addition, in folder 'results', I also provide the csv with the test results for two approaches:
 1) The official submission to ISIC challenge 2017: out_isic_2017.csv
 2) The best result in paper "Iván Gonzalez Diaz, "DermaKNet: Incorporating the knowledge of dermatologists to Convolutional Neural Networks for skin lesion diagnosis," in IEEE Journal of Biomedical and Health Informatics, vol. PP, no. 99, pp. 1-1. doi: 10.1109/JBHI.2018.2806962": out_jbhi2019.csv
 
