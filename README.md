@@ -15,8 +15,7 @@ Definitions:
 
 A description of the method is given in the following papers:
 
-Iván Gonzalez Diaz, "DermaKNet: Incorporating the knowledge of dermatologists to Convolutional Neural Networks for skin lesion diagnosis," in IEEE Journal of Biomedical and Health Informatics, vol. PP, no. 99, pp. 1-1.
-doi: 10.1109/JBHI.2018.2806962
+Iván Gonzalez Diaz, "DermaKNet: Incorporating the knowledge of dermatologists to Convolutional Neural Networks for skin lesion diagnosis," in IEEE Journal of Biomedical and Health Informatics, vol. PP, no. 99, pp. 1-1. doi: 10.1109/JBHI.2018.2806962
 
 Iván González-Díaz. Incorporating the Knowledge of Dermatologists to Convolutional Neural Networks for the Diagnosis of Skin Lesions. CoRR abs/1703.01976 (2017)
 
@@ -60,6 +59,11 @@ I provide two functions in case you would like to train your own networks:
 	-data/netDefs/simpleNet.m: a simple network based on resnet-50.
 	-data/netDefs/completeNet.m: the structure we used in the ISIC-2017 challenge.
 
+
+Results
+In addition, infolder 'results', I also provide the csv with the test results for two approaches:
+1) The official submission to ISIC challenge 2017: out_isic_2017.csv
+2) The best result in paper "Iván Gonzalez Diaz, "DermaKNet: Incorporating the knowledge of dermatologists to Convolutional Neural Networks for skin lesion diagnosis," in IEEE Journal of Biomedical and Health Informatics, vol. PP, no. 99, pp. 1-1. doi: 10.1109/JBHI.2018.2806962": out_jbhi2019.csv
 
 For any question regarding the code, send me an e-mail to igonzalez@tsc.uc3m.es
 
